@@ -140,6 +140,7 @@ class MainActivity : AppCompatActivity() {
         modelRenderable: ModelRenderable,
         viewRenderable: ViewRenderable
     ) {
+        // This node is our 3D furniture model
         val anchorNode = AnchorNode(anchor)
         val modelNode = TransformableNode(arFragment.transformationSystem).apply {
             renderable = modelRenderable
@@ -181,7 +182,8 @@ class MainActivity : AppCompatActivity() {
             .setView(this, createDeleteButton())
             .build()
 
-        // We will wait for the renderables to finish then add them to the callback
+        // We will wait for the renderables to finish then add them to the callback, doing this this way since we are waiting on 2 renderables
+        // If it was just one, use .thenAccept after the build for the one item
         CompletableFuture.allOf(modelRenderable, viewRenderable)
             .thenAccept {
                 callback(modelRenderable.get(), viewRenderable.get())

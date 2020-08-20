@@ -1,9 +1,11 @@
 package com.squidster.furnituretester
 
 import android.graphics.Color
+import android.media.CamcorderProfile
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.TypedValue
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
@@ -23,6 +25,8 @@ import com.google.ar.sceneform.ux.ArFragment
 import com.google.ar.sceneform.ux.TransformableNode
 import com.squidster.initialarsetup.Model
 import com.squidster.initialarsetup.ModelAdpater
+import com.squidster.initialarsetup.PhotoSaver
+import com.squidster.initialarsetup.VideoRecorder
 import kotlinx.android.synthetic.main.activity_main.*
 import java.security.cert.TrustAnchor
 import java.util.concurrent.CompletableFuture
@@ -30,6 +34,7 @@ import java.util.concurrent.CompletableFuture
 
 private const val BOTTOM_SHEET_PEEK_HEIGHT = 50f
 private const val DOUBLE_TAP_TOLERANCE_MS = 1000L
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -47,6 +52,11 @@ class MainActivity : AppCompatActivity() {
 
     val viewNodes = mutableListOf<Node>()
 
+    private lateinit var photoSaver: PhotoSaver
+    private lateinit var videoRecorder: VideoRecorder
+
+    private var isRecording = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -57,8 +67,38 @@ class MainActivity : AppCompatActivity() {
         setUpRecycleView()
         setupDoubleTapArPlaneListener()
 
+        photoSaver = PhotoSaver(this)
+        videoRecorder = VideoRecorder(this).apply{
+            sceneView = arFragment.arSceneView
+            setVideoQuality(CamcorderProfile.QUALITY_1080P, resources.configuration.orientation)
+        }
+
+        setUpFab()
+
         getCurrentScene().addOnUpdateListener {
             rotateViewNodesTowardsUser()
+        }
+    }
+
+    private fun setUpFab(){
+        fab.setOnClickListener{
+            if(!isRecording){
+                photoSaver.takePhoto(arFragment.arSceneView)
+            }
+        }
+        fab.setOnLongClickListener{
+            isRecording = videoRecorder.toggleRecordingState()
+            true
+        }
+        fab.setOnTouchListener{view, motionEvent ->
+            if(motionEvent.action == MotionEvent.ACTION_UP && isRecording){
+                // The user lifted their finger off the button, stop the recording and save
+                isRecording = videoRecorder.toggleRecordingState()
+                Toast.makeText(this, "Saved video to gallery!", Toast.LENGTH_LONG).show()
+                true
+            } else {
+                false
+            }
         }
     }
 
